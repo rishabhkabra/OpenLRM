@@ -16,11 +16,13 @@
 import os
 import numpy as np
 import imageio
-
+from PIL import Image
 
 def images_to_video(images, output_path, fps, gradio_codec: bool, verbose=False):
     # images: (T, C, H, W)
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    frames_path = os.path.join(os.path.dirname(os.path.dirname(output_path)), 'frames', os.path.basename(output_path).split('.')[0])
+    os.makedirs(frames_path)
     frames = []
     for i in range(images.shape[0]):
         frame = (images[i].permute(1, 2, 0).cpu().numpy() * 255).astype(np.uint8)
@@ -29,6 +31,10 @@ def images_to_video(images, output_path, fps, gradio_codec: bool, verbose=False)
         assert frame.min() >= 0 and frame.max() <= 255, \
             f"Frame value out of range: {frame.min()} ~ {frame.max()}"
         frames.append(frame)
+        frame_image = Image.fromarray(frame)
+        if verbose:
+            print("Saving frame to: ", os.path.join(frames_path, 'frame_%03d.png' % i))
+        frame_image.save(os.path.join(frames_path, 'frame_%03d.png' % i))
     frames = np.stack(frames)
     if gradio_codec:
         imageio.mimwrite(output_path, frames, fps=fps, quality=10)
